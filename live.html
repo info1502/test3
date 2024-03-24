@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Osadzony filmik po kliknięciu na przycisk</title>
+</head>
+<body>
+
+<!-- Przycisk "Zobacz" -->
+<button id="zobaczButton">Zobacz film</button>
+
+<!-- Div, w którym zostanie osadzony film -->
+<div id="filmContainer" style="display:none;"></div>
+
+<script>
+// Funkcja do osadzania filmu po kliknięciu na przycisk
+function osadzFilm() {
+    // Znajdujemy kontener filmu
+    var filmContainer = document.getElementById("filmContainer");
+    
+    // Tworzymy iframe
+    var iframe = document.createElement("iframe");
+    iframe.setAttribute("width", "560");
+    iframe.setAttribute("height", "315");
+    iframe.setAttribute("src", "https://www.youtube.com/embed/dzntyCTgJMQ");
+    iframe.setAttribute("frameborder", "0");
+    iframe.setAttribute("allowfullscreen", "");
+
+    // Dodajemy iframe do kontenera
+    filmContainer.appendChild(iframe);
+    
+    // Pokazujemy kontener filmu
+    filmContainer.style.display = "block";
+}
+
+// Dodajemy nasłuchiwanie na kliknięcie przycisku
+document.getElementById("zobaczButton").addEventListener("click", osadzFilm);
+</script>
+
+</body>
+</html>
