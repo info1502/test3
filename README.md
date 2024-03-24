@@ -1,61 +1,126 @@
+
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Podstrona - Profil użytkownika</title>
-</head>
-<body>
- <style>
-        #profileImage {
-            width: 150px;
-            height: 150px;
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Film Editor</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            text-align: center;
+            margin: 50px;
+        }
+
+        #drop-zone {
+            border: 2px dashed #ccc;
+            padding: 20px;
+            cursor: pointer;
+        }
+
+        video {
+            width: 100%;
+            max-width: 600px;
+            margin-top: 20px;
+        }
+
+        button {
+            margin-top: 20px;
+            padding: 10px;
+            font-size: 16px;
+            cursor: pointer;
         }
     </style>
-    <h1>Profil użytkownika</h1>
-    <div id="userProfile">
-        <div>
-            <img id="profileImage" src="" alt="Zdjęcie profilowe">
-        </div>
-        <div id="profileInfo"></div>
-<div id="plakietkaElement"></div>
+</head>
+<body>
+    <h1>Film Editor</h1>
 
+    <div id="drop-zone">
+        <p>Przeciągnij i upuść plik video tutaj<br />lub kliknij, aby wybrać plik</p>
+        <input type="file" id="file-input" accept="video/*" />
     </div>
 
+    <video controls id="output-video"></video>
+
+    <button id="save-button" style="display:none;">Zapisz film</button>
+
+    <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg/dist/ffmpeg.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg/dist/ffprobe.min.js"></script>
     <script>
-           
-        // Pobierz dane zalogowanego użytkownika z localStorage
-        var currentUser = localStorage.getItem('currentplayer');
-        var users = JSON.parse(localStorage.getItem('users'));
+        document.addEventListener('DOMContentLoaded', () => {
+            const dropZone = document.getElementById('drop-zone');
+            const fileInput = document.getElementById('file-input');
+            const outputVideo = document.getElementById('output-video');
+            const saveButton = document.getElementById('save-button');
 
-
-        // Wyświetl profil zalogowanego użytkownika
-        if (currentUser && users) {
-            var userProfileDiv = document.getElementById('userProfile');
-            var profileImageElement = document.getElementById('profileImage');
-            var profileInfoDiv = document.getElementById('profileInfo');
-
-            var foundUser = users.find(function(user) {
-                return user.username === currentUser;
+            dropZone.addEventListener('click', () => fileInput.click());
+            dropZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropZone.style.border = '2px dashed #39f';
+            });
+            dropZone.addEventListener('dragleave', () => {
+                dropZone.style.border = '2px dashed #ccc';
+            });
+            dropZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropZone.style.border = '2px dashed #ccc';
+                const file = e.dataTransfer.files[0];
+                handleFile(file);
             });
 
-            if (foundUser) {
-                // Jeśli znaleziono użytkownika o nazwie 'currentUser', wyświetl jego dane na stronie
-                profileImageElement.src = foundUser.profileImage;
-                profileInfoDiv.innerHTML = '<p>Witaj, ' + foundUser.username + '! To jest Twój profil.</p>';
+            fileInput.addEventListener('change', () => {
+                const file = fileInput.files[0];
+                handleFile(file);
+            });
 
-                // Wyświetl opis użytkownika, jeśli istnieje
-                var storedDescription = localStorage.getItem(currentUser + '_description');
-                if (storedDescription) {
-                    profileInfoDiv.innerHTML += '<p>Opis: ' + storedDescription + '</p>';
+            saveButton.addEventListener('click', async () => {
+                const result = await convertVideo();
+                downloadVideo(result);
+            });
+
+            async function handleFile(file) {
+                if (file && file.type.startsWith('video/')) {
+                    const videoUrl = URL.createObjectURL(file);
+                    outputVideo.src = videoUrl;
+                    saveButton.style.display = 'block';
+                } else {
+                    alert('Wybierz plik wideo.');
                 }
-            } else {
-                // Jeśli użytkownik o nazwie 'currentUser' nie został znaleziony, wyświetl odpowiedni komunikat
-                profileInfoDiv.innerHTML = '<p>Użytkownik "' + currentUser + '" nie został znaleziony.</p>';
             }
-        } else {
-            // Jeśli użytkownik nie jest zalogowany lub brak danych użytkowników, wyświetl odpowiedni komunikat
-            var userProfileDiv = document.getElementById('userProfile');
-            userProfileDiv.innerHTML = '<p>Musisz być zalogowany, aby zobaczyć ten profil.</p>';
-        }
+
+            async function convertVideo() {
+                const ffmpeg = createFFmpeg({ log: true });
+                await ffmpeg.load();
+                const inputPath = 'input.mp4';
+                const outputPath = 'output.mp4';
+
+                ffmpeg.FS('writeFile', inputPath, await fetchFile(fileInput.files[0]));
+                await ffmpeg.run('-i', inputPath, outputPath);
+                const data = ffmpeg.FS('readFile', outputPath);
+
+                return new Blob([data.buffer], { type: 'video/mp4' });
+            }
+
+            function downloadVideo(blob) {
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'edited_video.mp4';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+            }
+
+            function fetchFile(file) {
+                return new Promise((resolve) => {
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                        resolve(new Uint8Array(event.target.result));
+                    };
+                    reader.readAsArrayBuffer(file);
+                });
+            }
+        });
     </script>
 </body>
 </html>
